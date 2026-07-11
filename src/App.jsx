@@ -19,7 +19,7 @@ function decodeToken(token) {
 }
 
 function sessionsKey(email) {
-  return `askOllie_sessions_${email}`;
+  return `askOllie_sessions_${email || "guest"}`;
 }
 
 function makeSessionTitle(firstUserMessage) {
@@ -54,6 +54,7 @@ function BackgroundDecoration() {
 function App() {
   const [idToken, setIdToken] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [isGuest, setIsGuest] = useState(false);
   const [authError, setAuthError] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
@@ -69,6 +70,7 @@ function App() {
 
   const activeSession = sessions.find((s) => s.id === activeSessionId) || null;
   const messages = activeSession?.messages || [];
+  const isSignedIn = Boolean(idToken) || isGuest;
 
   // --- Google Sign-In setup ---
   useEffect(() => {
@@ -108,9 +110,10 @@ function App() {
 
   // --- Load sessions once signed in ---
   useEffect(() => {
-    if (!profile?.email) return;
+    if (!isSignedIn) return;
+    const email = profile?.email;
     try {
-      const saved = localStorage.getItem(sessionsKey(profile.email));
+      const saved = localStorage.getItem(sessionsKey(email));
       const loaded = saved ? JSON.parse(saved) : [];
       if (loaded.length > 0) {
         setSessions(loaded);
@@ -125,20 +128,20 @@ function App() {
       setSessions([fresh]);
       setActiveSessionId(fresh.id);
     }
-  }, [profile?.email]);
+  }, [isSignedIn, profile?.email]);
 
   // --- Save sessions on every change ---
   useEffect(() => {
-    if (!profile?.email || sessions.length === 0) return;
+    if (!isSignedIn || sessions.length === 0) return;
     try {
       localStorage.setItem(
-        sessionsKey(profile.email),
+        sessionsKey(profile?.email),
         JSON.stringify(sessions),
       );
     } catch {
       // storage full/unavailable — fail silently
     }
-  }, [profile?.email, sessions]);
+  }, [isSignedIn, profile?.email, sessions]);
 
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -171,9 +174,9 @@ function App() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
         },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ messages: newMessages, guest: isGuest }),
       });
 
       const data = await response.json();
@@ -181,6 +184,7 @@ function App() {
       if (response.status === 401) {
         setIdToken(null);
         setProfile(null);
+        setIsGuest(false);
         setAuthError("Please sign in again to keep chatting with Ollie.");
         setThinking(false);
         return;
@@ -287,9 +291,15 @@ function App() {
     });
   }
 
+  function handleGuestMode() {
+    setAuthError(null);
+    setIsGuest(true);
+  }
+
   function handleSignOut() {
     setIdToken(null);
     setProfile(null);
+    setIsGuest(false);
     setSessions([]);
     setActiveSessionId(null);
     if (window.google) {
@@ -298,24 +308,40 @@ function App() {
   }
 
   // --- Sign-in gate ---
-  if (!idToken) {
+  if (!isSignedIn) {
     return (
       <div className="app-shell signin-shell">
         <BackgroundDecoration />
-        <header className="app-header">
-          <h1>Ask Ollie 🦉</h1>
-        </header>
-        <main className="chat-card signin-card">
+        <main className="signin-storybook-card">
           <OllieAvatar thinking={false} />
-          <p className="empty-state">
-            A grown-up needs to sign in with Google before we start chatting!
+          <h1 className="signin-title">Ask Ollie!</h1>
+          <p className="signin-subtitle">
+            A wise, friendly owl who loves answering your "why" and "how"
+            questions! 🌟
           </p>
+          <p className="signin-hint">
+            A grown-up should be nearby before we start chatting.
+          </p>
+
           {authError && (
             <div className="error-banner" role="alert">
               {authError}
             </div>
           )}
-          <div ref={signInButtonRef} />
+
+          <div className="signin-google-wrap" ref={signInButtonRef} />
+
+          <div className="signin-divider">
+            <span>or</span>
+          </div>
+
+          <button className="guest-btn" onClick={handleGuestMode}>
+            🦉 Try as a Guest
+          </button>
+          <p className="signin-guest-note">
+            Guest chats stay only on this device and aren't linked to an
+            account.
+          </p>
         </main>
       </div>
     );
@@ -346,7 +372,10 @@ function App() {
             ☰
           </button>
           <span className="topbar-title">Ask Ollie 🦉</span>
-          <ProfileMenu profile={profile} onSignOut={handleSignOut} />
+          <ProfileMenu
+            profile={isGuest ? { name: "Guest", email: "Not signed in" } : profile}
+            onSignOut={handleSignOut}
+          />
         </div>
 
         <main className="chat-card">
