@@ -1,121 +1,127 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useRef, useEffect } from 'react'
+import OllieAvatar from './OllieAvatar.jsx'
+
+const SUGGESTIONS = [
+  'Why is the sky blue?',
+  'How do birds fly?',
+  'Why do we dream?',
+  'How do plants grow?',
+]
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [messages, setMessages] = useState([]) // { role: 'user' | 'assistant', content: string }
+  const [input, setInput] = useState('')
+  const [thinking, setThinking] = useState(false)
+  const [error, setError] = useState(null)
+  const scrollRef = useRef(null)
+
+  // Auto-scroll to newest message
+  useEffect(() => {
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, thinking])
+
+  async function sendMessage(text) {
+    const trimmed = text.trim()
+    if (!trimmed || thinking) return
+
+    setError(null)
+    const newMessages = [...messages, { role: 'user', content: trimmed }]
+    setMessages(newMessages)
+    setInput('')
+    setThinking(true)
+
+    // --- MOCK RESPONSE (temporary, replaced with real API call in Step 8) ---
+    setTimeout(() => {
+      setMessages(prev => [
+        ...prev,
+        { role: 'assistant', content: `(mock reply) Great question about "${trimmed}"! 🦉` },
+      ])
+      setThinking(false)
+    }, 1200)
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault()
+    sendMessage(input)
+  }
+
+  function handleChipClick(question) {
+    sendMessage(question)
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app-shell">
+      <header className="app-header">
+        <h1>Ask Ollie 🦉</h1>
+      </header>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+      <main className="chat-card">
+        <div className="ollie-header">
+          <OllieAvatar thinking={thinking} />
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+        <div className="messages">
+          {messages.length === 0 && (
+            <p className="empty-state">Hi! I'm Ollie. Ask me anything — try one below, or type your own question!</p>
+          )}
+
+          {messages.map((m, i) => (
+            <div
+              key={i}
+              className={`bubble-row ${m.role === 'user' ? 'bubble-row-user' : 'bubble-row-ollie'}`}
+            >
+              {m.role === 'assistant' && <span className="bubble-label">Ollie</span>}
+              <div className={`bubble ${m.role === 'user' ? 'bubble-user' : 'bubble-ollie'}`}>
+                {m.content}
+              </div>
+            </div>
+          ))}
+
+          {thinking && (
+            <div className="bubble-row bubble-row-ollie">
+              <span className="bubble-label">Ollie</span>
+              <div className="bubble bubble-ollie bubble-thinking">
+                <span className="dot" />
+                <span className="dot" />
+                <span className="dot" />
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="error-banner" role="alert">
+              {error}
+            </div>
+          )}
+
+          <div ref={scrollRef} />
+        </div>
+
+        {messages.length === 0 && (
+          <div className="chips">
+            {SUGGESTIONS.map(q => (
+              <button key={q} className="chip" onClick={() => handleChipClick(q)}>
+                {q}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <form className="input-row" onSubmit={handleSubmit}>
+          <input
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Type your question..."
+            aria-label="Type your question"
+            disabled={thinking}
+          />
+          <button type="submit" aria-label="Send question" disabled={thinking || !input.trim()}>
+            ➤
+          </button>
+        </form>
+      </main>
+    </div>
   )
 }
 
