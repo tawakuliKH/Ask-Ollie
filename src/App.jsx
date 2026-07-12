@@ -56,6 +56,7 @@ function App() {
   const [profile, setProfile] = useState(null);
   const [isGuest, setIsGuest] = useState(false);
   const [authError, setAuthError] = useState(null);
+  const [googleReady, setGoogleReady] = useState(false);
   const [sessions, setSessions] = useState([]);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [input, setInput] = useState("");
@@ -96,6 +97,7 @@ function App() {
         shape: "pill",
         text: "signin_with",
       });
+      setGoogleReady(true);
     }
 
     if (window.google) {
@@ -341,6 +343,13 @@ function App() {
     });
   }
 
+  function handleClearAll() {
+    stopSpeaking();
+    const fresh = createEmptySession();
+    setSessions([fresh]);
+    setActiveSessionId(fresh.id);
+  }
+
   function handleGuestMode() {
     setAuthError(null);
     setIsGuest(true);
@@ -380,7 +389,18 @@ function App() {
             </div>
           )}
 
-          <div className="signin-google-wrap" ref={signInButtonRef} />
+         <div className="signin-google-wrap">
+            {!googleReady && (
+              <div className="signin-google-skeleton" aria-hidden="true">
+                <span className="skeleton-spinner" />
+                Loading sign-in…
+              </div>
+            )}
+            <div
+              ref={signInButtonRef}
+              style={{ display: googleReady ? "block" : "none" }}
+            />
+          </div>
 
           <div className="signin-divider">
             <span>or</span>
@@ -407,6 +427,7 @@ function App() {
         onSelectSession={handleSelectSession}
         onNewChat={handleNewChat}
         onDeleteSession={handleDeleteSession}
+        onClearAll={handleClearAll}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
       />
