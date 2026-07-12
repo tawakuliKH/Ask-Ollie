@@ -1,25 +1,12 @@
-Set-Content -Path public\favicon.svg -Encoding utf8 -Value @'
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- Head -->
   <circle cx="32" cy="34" r="26" fill="#ffb64c"/>
-
-  <!-- Ear tufts -->
   <path d="M16 16 L11 4 L24 12 Z" fill="#e8993c"/>
   <path d="M48 16 L53 4 L40 12 Z" fill="#e8993c"/>
-
-  <!-- Eye whites -->
   <circle cx="22" cy="32" r="11" fill="#ffffff"/>
   <circle cx="42" cy="32" r="11" fill="#ffffff"/>
-
-  <!-- Pupils -->
   <circle cx="23" cy="33" r="5.5" fill="#33314b"/>
   <circle cx="43" cy="33" r="5.5" fill="#33314b"/>
-
-  <!-- Eye shine -->
   <circle cx="21" cy="31" r="1.6" fill="#ffffff"/>
   <circle cx="41" cy="31" r="1.6" fill="#ffffff"/>
-
-  <!-- Beak -->
   <path d="M28 42 L36 42 L32 50 Z" fill="#e8993c"/>
 </svg>
-'@
